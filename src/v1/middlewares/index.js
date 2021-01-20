@@ -32,7 +32,7 @@ const authenticate = async (req, res, next) => {
 		const userType = req.headers.usertype;
 
 		if (!userType) {
-			throw new UnAuthorizedAccess('usertype not provided');
+			throw new UnAuthorizedAccess('Access type not defined');
 		}
 
 		let user;
@@ -57,7 +57,11 @@ const authenticate = async (req, res, next) => {
 		next();
 	} catch (e) {
 		console.log('middleware-authenticate-error:', e);
-		return res.status(e.errorCode || 500).json(e);
+		return res.status(e.errorCode || 500).json({
+			error: {
+				message: e.errors.message,
+			},
+		});
 	}
 };
 
@@ -71,7 +75,11 @@ const authorize = async (req, res, next) => {
 
 		next();
 	} catch (e) {
-		res.status(e.errorCode || 500).json(e);
+		return res.status(e.errorCode || 500).json({
+			error: {
+				message: e.errors.message,
+			},
+		});
 	}
 };
 

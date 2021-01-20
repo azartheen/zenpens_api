@@ -12,7 +12,7 @@ const { Router } = require('express');
 const api = Router();
 const userController = require('../controllers/user');
 const {
-	registerValidator, loginValidator, resendEmailVerfificationValidator, emailVerificationValidator, forgotPasswordValidator, resetPasswordValidator, changePasswordValidator,
+	registerValidator, loginValidator, resendEmailVerfificationValidator, emailVerificationValidator, forgotPasswordValidator, validateTokenValidator, resetPasswordValidator, changePasswordValidator,
 } = require('../validators/user');
 const { authenticate } = require('../middlewares');
 
@@ -29,6 +29,8 @@ module.exports = () => {
 	api.post('/email-verify', authenticate, emailVerificationValidator, userController.emailVerification);
 
 	api.post('/forgot-password', forgotPasswordValidator, userController.forgotPassword);
+
+	api.get('/validate-password-token/:token', validateTokenValidator, userController.validatePasswordToken);
 
 	api.post('/reset-password', resetPasswordValidator, userController.resetPassword);
 

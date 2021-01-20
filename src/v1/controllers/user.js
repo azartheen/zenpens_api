@@ -1,4 +1,5 @@
 /* eslint-disable consistent-return */
+const moment = require('moment');
 
 const User = require('../data/user');
 const jwt = require('../services/jwt');
@@ -22,6 +23,9 @@ const login = async (req, res, next) => {
 		const token = await jwt.sign(user.id);
 
 		if (!token) throw new ServerError('Failed to generate Token');
+
+		// delete user password
+		delete user.password;
 
 		return res.status(200).json({
 			message: 'Login Successful',
@@ -60,6 +64,8 @@ const register = async (req, res, next) => {
 		const token = await jwt.sign(newUser.id);
 
 		if (!token) throw new ServerError('Failed to generate Token');
+
+		delete newUser.password;
 
 		return res.status(200).json({
 			message: 'User registered Successfully',
@@ -140,10 +146,13 @@ const forgotPassword = async (req, res, next) => {
 		// if no user was found
 		if (!user) throw new BadRequestError('Invalid details');
 
-		const token = await User.setPasswordReset(user.email);
+		// checking for outstanding token first
+		let token = await User.updatePasswordReset(user.email);
+
+		token = (token) || await User.createPasswordReset(user.email);
 
 		// get the password reset url route for email link
-		const passwordResetUrl = `${req.body.passwordResetUrl}/${token}`;
+		const passwordResetUrl = `${req.body.passwordResetUrl}/${token.token}`;
 
 		// send email to user for pasword reset
 		const messageRes = await User.sendPasswordResetEmail({
@@ -169,12 +178,40 @@ const forgotPassword = async (req, res, next) => {
 	}
 };
 
+const validatePasswordToken = async (req, res, next) => {
+	try {
+		const passwordToken = await User.getTokenEmail(req.params.token);
+
+		// if no passwordToken was found
+		if (!passwordToken) throw new BadRequestError('Invalid token');
+
+		return res.status(200).json({
+			message: 'Token Verified Successfully!',
+			meta: {
+				currentPage: 1,
+				pageSize: 1,
+				pageTotal: 1,
+			},
+		});
+	} catch (e) {
+		console.log('userController-validatePasswordToken', e);
+		next(e);
+	}
+};
+
 const resetPassword = async (req, res, next) => {
 	try {
 		const passwordToken = await User.getTokenEmail(req.body.token);
 
 		// if no passwordToken was found
 		if (!passwordToken) throw new BadRequestError('Invalid details');
+
+		const expiryTime = moment(passwordToken.createdAt).add(10, 'm').format('x');
+
+		const timeNow = moment().format('x');
+
+		// if the token has expired
+		if (timeNow > expiryTime) throw new BadRequestError('Token is no longer valid');
 
 		const user = await User.getUser(passwordToken.email);
 
@@ -184,6 +221,11 @@ const resetPassword = async (req, res, next) => {
 		const updatedUser = await User.updatePassword({
 			email: user.email,
 			password: req.body.newPassword,
+		});
+
+		await User.deleteTokenEmail({
+			token: req.body.token,
+			email: user.email,
 		});
 
 		return res.status(200).json({
@@ -237,6 +279,7 @@ module.exports = {
 	resendEmailVerification,
 	emailVerification,
 	forgotPassword,
+	validatePasswordToken,
 	resetPassword,
 	changePassword,
 };

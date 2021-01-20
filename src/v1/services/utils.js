@@ -5,7 +5,7 @@ const fs = require('fs');
 const { ServerError } = require('../errors');
 
 const generatePassword = (len) => {
-	const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!#@$%&\()*+,-./:;<=>?^[\\]^_`{|}~';
+	const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!#@$%&()*+,-./:;<=>?^[\\]^_`{|}~';
 	let retVal = '';
 	// eslint-disable-next-line no-plusplus
 	for (let i = 0, n = charset.length; i < len; ++i) {
@@ -34,10 +34,10 @@ const sendMail = async ({ mailTo, subject, message }) => {
 
 const logger = async (message) => {
 	const logTime = moment().format();
-	const logContent = `${logTime} -- ${message}`;
+	const logContent = `${logTime} -- ${message} \n`;
 
 	try {
-		fs.appendFile('../logs/error.log', logContent, (err) => {
+		fs.appendFile('./logs/error.log', logContent, (err) => {
 			if (err) throw err;
 			console.log('Error Logged to file');
 		});

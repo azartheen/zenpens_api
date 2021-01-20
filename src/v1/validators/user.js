@@ -3,33 +3,37 @@ const Joi = require('joi');
 
 const registerSchema = Joi.object({
 	username: Joi.string()
+		.required()
 		.alphanum()
 		.min(5)
-		.max(30)
-		.required(),
+		.max(30),
 
 	email: Joi.string()
-		.email()
-		.required(),
+		.required()
+		.email(),
 
-	emailVerifyUrl: Joi.string()
-		.uri()
-		.required(),
+	dob: Joi.date()
+		.required()
+		.messages({
+			'date.base': '"Date of birth" should be a date',
+			'date.empty': '"Date of birth" cannot be an empty field',
+			'any.required': '"Date of birth" is a required field',
+		}),
 
 	password: Joi.string()
+		.required()
 		.min(8)
 		.pattern(new RegExp('(?=.*[A-Z])(?=.*[0-9])(?=.*[a-z]).{8}'))
-		.required()
 		.messages({
 			'string.base': '"password" should be a type of \'text\'',
 			'string.empty': '"password" cannot be an empty field',
-			'string.pattern.base': '"password" should contain at least one uppercase letter, one lowercase letter, one digit and one character and length must be greater than 7"',
+			'string.pattern.base': '"password" should contain at least one uppercase letter, one lowercase letter, one digit and must be atleast 8 characters long"',
 			'any.required': '"password" is a required field',
 		}),
 
-	dob: Joi.date()
-		.required(),
-
+	emailVerifyUrl: Joi.string()
+		.required()
+		.uri(),
 });
 
 const registerValidator = async (req, res, next) => {
@@ -103,7 +107,12 @@ const emailVerificationSchema = Joi.object({
 		.alphanum()
 		.min(10)
 		.max(50)
-		.required(),
+		.required()
+		.messages({
+			'string.base': 'Verification code is required',
+			'string.min': '"Verification code" is invalid',
+			'any.required': 'Verification code is a required field',
+		}),
 
 });
 
@@ -122,7 +131,7 @@ const emailVerificationValidator = async (req, res, next) => {
 
 const forgotPasswordSchema = Joi.object({
 	email: Joi.string()
-		.email()
+		.min(5)
 		.required(),
 
 	passwordResetUrl: Joi.string()
@@ -144,12 +153,48 @@ const forgotPasswordValidator = async (req, res, next) => {
 	}
 };
 
+const validateTokenSchema = Joi.object({
+	token: Joi.string()
+		.alphanum()
+		.min(10)
+		.max(50)
+		.required()
+		.messages({
+			'string.base': '"Password Reset code" is invalid',
+			'string.empty': '"Password Reset code" cannot be empty',
+			'string.min': '"Password Reset code" is invalid',
+			'string.max': '"Password Reset code" is invalid',
+			'any.required': '"Password Reset code" is a required',
+		}),
+
+});
+
+const validateTokenValidator = async (req, res, next) => {
+	try {
+		await validateTokenSchema.validateAsync(req.params, { abortEarly: false });
+		next();
+	} catch (err) {
+		console.log('forgotPasswordUserValidator', err);
+		return res.status(400).json({
+			message: 'Please handle these validation errors',
+			errors: err.details.map((e) => e.message),
+		});
+	}
+};
+
 const resetPasswordSchema = Joi.object({
 	token: Joi.string()
 		.alphanum()
 		.min(10)
 		.max(50)
-		.required(),
+		.required()
+		.messages({
+			'string.base': '"Password Reset code" is invalid',
+			'string.empty': '"Password Reset code" cannot be empty',
+			'string.min': '"Password Reset code" is invalid',
+			'string.max': '"Password Reset code" is invalid',
+			'any.required': '"Password Reset code" is a required',
+		}),
 
 	newPassword: Joi.string()
 		.min(8)
@@ -158,7 +203,7 @@ const resetPasswordSchema = Joi.object({
 		.messages({
 			'string.base': '"password" should be a type of \'text\'',
 			'string.empty': '"password" cannot be an empty field',
-			'string.pattern.base': '"password" should contain at least one uppercase letter, one lowercase letter, one digit and one character and length must be greater than 7"',
+			'string.pattern.base': '"password" should contain at least one uppercase letter, one lowercase letter, one digit and length must be greater than 7"',
 			'any.required': '"password" is a required field',
 		}),
 
@@ -183,13 +228,10 @@ const changePasswordSchema = Joi.object({
 		.required(),
 
 	oldPassword: Joi.string()
-		.min(8)
-		.pattern(new RegExp('(?=.*[A-Z])(?=.*[0-9])(?=.*[a-z]).{8}'))
 		.required()
 		.messages({
 			'string.base': '"password" should be a type of \'text\'',
 			'string.empty': '"password" cannot be an empty field',
-			'string.pattern.base': '"password" should contain at least one uppercase letter, one lowercase letter, one digit and one character and length must be greater than 7"',
 			'any.required': '"password" is a required field',
 		}),
 
@@ -200,7 +242,7 @@ const changePasswordSchema = Joi.object({
 		.messages({
 			'string.base': '"password" should be a type of \'text\'',
 			'string.empty': '"password" cannot be an empty field',
-			'string.pattern.base': '"password" should contain at least one uppercase letter, one lowercase letter, one digit and one character and length must be greater than 7"',
+			'string.pattern.base': '"password" should contain at least one uppercase letter, one lowercase letter, one digit and length must be greater than 7"',
 			'any.required': '"password" is a required field',
 		}),
 
@@ -225,6 +267,7 @@ module.exports = {
 	resendEmailVerfificationValidator,
 	emailVerificationValidator,
 	forgotPasswordValidator,
+	validateTokenValidator,
 	resetPasswordValidator,
 	changePasswordValidator,
 };

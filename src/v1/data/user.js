@@ -78,13 +78,24 @@ const verifyUserEmail = async ({ email, emailConfirmCode }) => {
 	return updatedUser;
 };
 
-const setPasswordReset = async (email) => {
-	const passwordToken = PasswordReset.create({
+const createPasswordReset = async (email) => {
+	const passwordToken = await PasswordReset.create({
 		email,
 		token: randomstring.generate(),
+		createdAt: new Date(),
 	});
 
-	return passwordToken.token;
+	return passwordToken;
+};
+
+const updatePasswordReset = async (email) => {
+	const passwordToken = await PasswordReset.findOneAndUpdate({
+		email,
+	}, {
+		token: randomstring.generate(),
+		createdAt: new Date(),
+	}, { new: true });
+	return passwordToken;
 };
 
 const sendPasswordResetEmail = async ({
@@ -105,8 +116,14 @@ const sendPasswordResetEmail = async ({
 };
 
 const getTokenEmail = async (token) => {
-	return PasswordReset.findOneAndDelete({
+	return PasswordReset.findOne({
 		token,
+	});
+};
+
+const deleteTokenEmail = async ({ token, email }) => {
+	return PasswordReset.deleteOne({
+		token, email,
 	});
 };
 
@@ -125,8 +142,10 @@ module.exports = {
 	getUserById,
 	sendEmailVerificationEmail,
 	verifyUserEmail,
-	setPasswordReset,
+	createPasswordReset,
+	updatePasswordReset,
 	sendPasswordResetEmail,
 	getTokenEmail,
+	deleteTokenEmail,
 	updatePassword,
 };
